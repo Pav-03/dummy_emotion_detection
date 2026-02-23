@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 dummy_emotion_detection
 ==============================
 
@@ -55,3 +56,7 @@ Project Organization
 --------
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+=======
+# dummy_emotion_detection
+dummy MLOps pipeline building project only.
+>>>>>>> 7d78e7dfa91ac9305c9380e58ad18e07357e3fba
