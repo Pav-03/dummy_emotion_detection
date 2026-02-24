@@ -1,0 +1,5 @@
+[core]
+    remote = myremote
+['remote "myremote"']
+    url = s3://dummy-emotion-detection-mlops/dvc-storage
+    region = eu-west-1
