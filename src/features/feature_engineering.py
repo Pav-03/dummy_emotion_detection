@@ -10,7 +10,7 @@ logger = logging.getLogger('feature_engineering')
 logger.setLevel('DEBUG')
 
 console_handler = logging.StreamHandler()
-console_handler.setLevel('DEBUG')
+console_handler.setLevel('DEBUG') 
 
 file_handler = logging.FileHandler('feature_engineering_errors.log')
 file_handler.setLevel('ERROR')
