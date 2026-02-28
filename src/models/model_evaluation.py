@@ -2,8 +2,13 @@ import numpy as np
 import pandas as pd
 import pickle
 import json
-from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, f1_score
 import logging
+
+import os
+import mlflow
+import mlflow.sklearn
+
 
 # logging configuration
 logger = logging.getLogger('model_evaluation')
@@ -59,12 +64,14 @@ def evaluate_model(clf, X_test: np.ndarray, y_test: np.ndarray) -> dict:
         precision = precision_score(y_test, y_pred)
         recall = recall_score(y_test, y_pred)
         auc = roc_auc_score(y_test, y_pred_proba)
+        f1 = f1_score(y_test, y_pred)
 
         metrics_dict = {
             'accuracy': accuracy,
             'precision': precision,
             'recall': recall,
-            'auc': auc
+            'auc': auc,
+            'f1_score': f1
         }
         logger.debug('Model evaluation metrics calculated')
         return metrics_dict
@@ -75,6 +82,7 @@ def evaluate_model(clf, X_test: np.ndarray, y_test: np.ndarray) -> dict:
 def save_metrics(metrics: dict, file_path: str) -> None:
     """Save the evaluation metrics to a JSON file."""
     try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w') as file:
             json.dump(metrics, file, indent=4)
         logger.debug('Metrics saved to %s', file_path)
@@ -84,15 +92,42 @@ def save_metrics(metrics: dict, file_path: str) -> None:
 
 def main():
     try:
-        clf = load_model('./models/model.pkl')
+
+        # Set up MLflow tracking URI and experiment
+
+        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+        mlflow.set_experiment("emotion-detection")
+
+        # Load the trained model and test data
+        clf = load_model('./model/model.pkl')
         test_data = load_data('./data/processed/test_bow.csv')
         
         X_test = test_data.iloc[:, :-1].values
         y_test = test_data.iloc[:, -1].values
 
+        # Evaluate the model
+
         metrics = evaluate_model(clf, X_test, y_test)
         
+        # Save metrics to a file and log to MLflow
         save_metrics(metrics, 'reports/metrics.json')
+
+        # Log metrics to MLflow
+        run_info_path = 'reports/run_info.json'
+
+        if os.path.exists(run_info_path):
+            with open(run_info_path, 'r') as f:
+                run_info = json.load(f)
+                run_id = run_info.get("run_id")
+                if run_id:
+                    mlflow.set_tag("run_id", run_id)
+                    mlflow.log_metrics(metrics)
+                    logger.info(f"Model evaluation metrics logged to MLflow successfully under run ID: {run_id}")
+                else:
+                    logger.error("Run ID not found in the run_info.json file.")
+        else:
+            logger.error("Run info file not found at reports/run_info.json. Metrics will not be logged to MLflow.")
+
     except Exception as e:
         logger.error('Failed to complete the model evaluation process: %s', e)
         print(f"Error: {e}")

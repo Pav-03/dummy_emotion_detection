@@ -39,4 +39,14 @@ stages:
     - model/model.pkl
     - reports/run_info.json
 
+  model_evaluation:
+    cmd: python src/models/model_evaluation.py
+    deps:
+    - model/model.pkl
+    - data/processed/test_bow.csv
+    - src/models/model_evaluation.py
+    outs:
+    - reports/metrics.json:
+        cache: false
+
   
