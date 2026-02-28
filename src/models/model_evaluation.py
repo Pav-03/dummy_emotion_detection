@@ -118,12 +118,13 @@ def main():
         if os.path.exists(run_info_path):
             with open(run_info_path, 'r') as f:
                 run_info = json.load(f)
-                run_id = run_info.get("run_id")
-                if run_id:
-                    mlflow.set_tag("run_id", run_id)
+            run_id = run_info.get("run_id")
+            if run_id:
+                with mlflow.start_run(run_id=run_id):
                     mlflow.log_metrics(metrics)
+                    mlflow.log_artifact('reports/metrics.json')
                     logger.info(f"Model evaluation metrics logged to MLflow successfully under run ID: {run_id}")
-                else:
+            else:
                     logger.error("Run ID not found in the run_info.json file.")
         else:
             logger.error("Run info file not found at reports/run_info.json. Metrics will not be logged to MLflow.")

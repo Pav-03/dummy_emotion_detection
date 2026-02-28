@@ -35,6 +35,7 @@ stages:
     params:
     - model_building.n_estimators
     - model_building.learning_rate
+    - model_building.max_depth
     outs:
     - model/model.pkl
     - reports/run_info.json

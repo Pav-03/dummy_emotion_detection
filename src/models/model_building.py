@@ -8,6 +8,8 @@ import os
 import mlflow
 import mlflow.sklearn
 
+from xgboost import XGBClassifier
+
 # logging configuration
 logger = logging.getLogger('model_building')
 logger.setLevel('DEBUG')
@@ -58,10 +60,27 @@ def load_data(file_path: str) -> pd.DataFrame:
 def train_model(X_train: np.ndarray, y_train: np.ndarray, params: dict) -> GradientBoostingClassifier:
     """Train the Gradient Boosting model."""
     try:
-        clf = GradientBoostingClassifier(n_estimators=params['n_estimators'], learning_rate=params['learning_rate'])
+
+        model_type = params.get('model_type', 'Gradient_boosting')
+
+        if model_type == 'xgboost':
+            clf = XGBClassifier(
+                n_estimators=params['n_estimators'], 
+                learning_rate=params['learning_rate'], 
+                max_depth=params['max_depth'],
+                use_label_encoder=False,
+                eval_metric='logloss'
+            )
+            logger.debug('XGBoost model training completed')
+        else:   
+
+            clf = GradientBoostingClassifier(n_estimators=params['n_estimators'], learning_rate=params['learning_rate'])
+        
+            logger.debug('Model training completed')
         clf.fit(X_train, y_train)
-        logger.debug('Model training completed')
+        logger.debug('Model fitting completed')
         return clf
+    
     except Exception as e:
         logger.error('Error during model training: %s', e)
         raise
@@ -95,7 +114,7 @@ def main():
         y_train = train_data.iloc[:, -1].values
 
         # start mlflow run
-        with mlflow.start_run(run_name="model_building_run"):
+        with mlflow.start_run(run_name="Xgboost-100-d3"):
 
             # log data info
             import hashlib
@@ -110,10 +129,11 @@ def main():
             logger.info("MLflow data parameters logged successfully")
 
             # log parameters
-            mlflow.log_param("model_type", "GradientBoostingClassifier")
+            mlflow.log_param("model_type", model_params.get('model_type', 'Gradient_boosting'))
             mlflow.log_param("n_estimators", model_params['n_estimators'])
             mlflow.log_param("learning_rate", model_params['learning_rate'])
             mlflow.log_param("feature_method", feature_params.get('method', 'bow'))
+            mlflow.log_param("max_depth", model_params.get('max_depth', 'N/A'))
             mlflow.log_param("max_features", feature_params.get('max_features', 500))
             mlflow.log_param("train_shape", int(X_train.shape[0]))
             mlflow.log_param("train_features", int(X_train.shape[1]))
