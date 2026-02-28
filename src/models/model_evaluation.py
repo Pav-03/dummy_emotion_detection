@@ -9,7 +9,7 @@ import mlflow.sklearn
 
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger       
 logger = get_logger("model_evaluation")
 
 def load_model(file_path: str):
@@ -113,6 +113,9 @@ def main():
                     logger.error("Run ID not found in the run_info.json file.")
         else:
             logger.error("Run info file not found at reports/run_info.json. Metrics will not be logged to MLflow.")
+
+        from src.utils.logger import upload_logs_to_s3
+        upload_logs_to_s3()
 
     except Exception as e:
         logger.error('Failed to complete the model evaluation process: %s', e)
