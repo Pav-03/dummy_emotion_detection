@@ -4,6 +4,9 @@ import pickle
 from sklearn.ensemble import GradientBoostingClassifier
 import yaml
 import logging
+import os
+import mlflow
+import mlflow.sklearn
 
 # logging configuration
 logger = logging.getLogger('model_building')
@@ -27,8 +30,8 @@ def load_params(params_path: str) -> dict:
     try:
         with open(params_path, 'r') as file:
             params = yaml.safe_load(file)
-        logger.debug('Parameters retrieved from %s', params_path)
-        return params
+            logger.debug('Parameters retrieved from %s', params_path)
+            return params
     except FileNotFoundError:
         logger.error('File not found: %s', params_path)
         raise
@@ -65,7 +68,9 @@ def train_model(X_train: np.ndarray, y_train: np.ndarray, params: dict) -> Gradi
 
 def save_model(model, file_path: str) -> None:
     """Save the trained model to a file."""
+    
     try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'wb') as file:
             pickle.dump(model, file)
         logger.debug('Model saved to %s', file_path)
@@ -75,15 +80,96 @@ def save_model(model, file_path: str) -> None:
 
 def main():
     try:
-        params = load_params('params.yaml')['model_building']
 
+        all_params = load_params('params.yaml')
+        model_params = all_params['model_building']
+        feature_params = all_params['feature_engineering']
+
+        # Mlflow tracking
+        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+        mlflow.set_experiment("emotion-detection")
+
+        # Load the processed data
         train_data = load_data('./data/processed/train_bow.csv')
         X_train = train_data.iloc[:, :-1].values
         y_train = train_data.iloc[:, -1].values
 
-        clf = train_model(X_train, y_train, params)
-        
-        save_model(clf, 'models/model.pkl')
+        # start mlflow run
+        with mlflow.start_run(run_name="model_building_run"):
+
+            # log data info
+            import hashlib
+
+            data_hash = hashlib.md5(pd.util.hash_pandas_object(train_data).values.tobytes()).hexdigest()
+
+            mlflow.log_param("train_data_path", './data/processed/train_bow.csv')
+            mlflow.log_param("train_data_hash", data_hash)
+            class_counts = train_data.iloc[:, -1].value_counts().to_dict()
+            mlflow.log_param("train_data_class_distribution", class_counts)
+
+            logger.info("MLflow data parameters logged successfully")
+
+            # log parameters
+            mlflow.log_param("model_type", "GradientBoostingClassifier")
+            mlflow.log_param("n_estimators", model_params['n_estimators'])
+            mlflow.log_param("learning_rate", model_params['learning_rate'])
+            mlflow.log_param("feature_method", feature_params.get('method', 'bow'))
+            mlflow.log_param("max_features", feature_params.get('max_features', 500))
+            mlflow.log_param("train_shape", int(X_train.shape[0]))
+            mlflow.log_param("train_features", int(X_train.shape[1]))
+            
+            logger.info(" MLflow parameters logged successfully")
+
+            # log tags
+            mlflow.set_tag("engineer", "Pavan Modi")
+            mlflow.set_tag("model_version", "1.0")
+            mlflow.set_tag("pipeline", "dvc_pipeline")
+            mlflow.set_tag("stage", "model_building")
+
+            logger.info("MLflow tags logged successfully")
+
+            # Train Model
+            clf = train_model(X_train, y_train, model_params)
+
+            # save model
+
+            # Save model pickle FIRST (for DVC pipeline)
+            save_model(clf, 'model/model.pkl')
+            logger.info("Model saved to model/model.pkl")
+
+            # Log the model to MLflow  s3 (for MLflow tracking and registry)
+            mlflow.sklearn.log_model(
+                sk_model=clf,
+                artifact_path="model",
+                registered_model_name="emotion_detection_model"
+            )
+
+            logger.info("Model logged to MLflow successfully")
+
+            #log training metrics
+
+            train_accuracy = clf.score(X_train, y_train)
+            mlflow.log_metric("training_accuracy", train_accuracy)
+
+            logger.info("MLflow training metrics logged successfully")
+
+            
+
+            # log run ID
+            run = mlflow.active_run()
+            run_id = run.info.run_id
+            mlflow.set_tag("run_id", run_id)
+
+            logger.info(f"MLflow run completed successfully with run ID: {run_id}")
+
+            # save run_id to a file so model_evaluation can find this and read it.
+            os.makedirs('reports', exist_ok=True)
+            with open('reports/run_info.json', 'w') as f:
+                import json
+                json.dump({"run_id": run_id},f)
+
+            logger.info("MLflow run ID saved to reports/run_info.json successfully")
+
     except Exception as e:
         logger.error('Failed to complete the model building process: %s', e)
         print(f"Error: {e}")
