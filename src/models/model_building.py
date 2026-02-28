@@ -3,29 +3,15 @@ import pandas as pd
 import pickle
 from sklearn.ensemble import GradientBoostingClassifier
 import yaml
-import logging
 import os
 import mlflow
 import mlflow.sklearn
 
 from xgboost import XGBClassifier
-
-# logging configuration
-logger = logging.getLogger('model_building')
-logger.setLevel('DEBUG')
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel('DEBUG')
-
-file_handler = logging.FileHandler('model_building_errors.log')
-file_handler.setLevel('ERROR')
-
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-file_handler.setFormatter(formatter)
-
-logger.addHandler(console_handler)
-logger.addHandler(file_handler)
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from src.utils.logger import get_logger
+logger = get_logger("model_building")
 
 def load_params(params_path: str) -> dict:
     """Load parameters from a YAML file."""

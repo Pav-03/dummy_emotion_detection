@@ -3,29 +3,14 @@ import pandas as pd
 import pickle
 import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, f1_score
-import logging
-
 import os
 import mlflow
 import mlflow.sklearn
 
-
-# logging configuration
-logger = logging.getLogger('model_evaluation')
-logger.setLevel('DEBUG')
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel('DEBUG')
-
-file_handler = logging.FileHandler('model_evaluation_errors.log')
-file_handler.setLevel('ERROR')
-
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-file_handler.setFormatter(formatter)
-
-logger.addHandler(console_handler)
-logger.addHandler(file_handler)
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from src.utils.logger import get_logger
+logger = get_logger("model_evaluation")
 
 def load_model(file_path: str):
     """Load the trained model from a file."""
