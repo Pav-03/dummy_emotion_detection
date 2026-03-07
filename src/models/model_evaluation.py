@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import pickle
+import joblib
 import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, f1_score
 import os
@@ -15,8 +15,7 @@ logger = get_logger("model_evaluation")
 def load_model(file_path: str):
     """Load the trained model from a file."""
     try:
-        with open(file_path, 'rb') as file:
-            model = pickle.load(file)
+        model = joblib.load(file_path)
         logger.debug('Model loaded from %s', file_path)
         return model
     except FileNotFoundError:
@@ -84,7 +83,7 @@ def main():
         mlflow.set_experiment("emotion-detection")
 
         # Load the trained model and test data
-        clf = load_model('./model/model.pkl')
+        clf = load_model('./model/model.joblib')
         test_data = load_data('./data/processed/test_bow.csv')
         
         X_test = test_data.iloc[:, :-1].values

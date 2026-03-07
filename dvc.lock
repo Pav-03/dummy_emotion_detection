@@ -44,8 +44,8 @@ stages:
       nfiles: 2
     - path: src/features/feature_engineering.py
       hash: md5
-      md5: f2de08e8a84244a7a87109e5dfc4a408
-      size: 3297
+      md5: b3a4c554c531857c4fd7b813f98ebfea
+      size: 3535
     params:
       params.yaml:
         feature_engineering.max_features: 500
@@ -65,21 +65,21 @@ stages:
       nfiles: 2
     - path: src/models/model_building.py
       hash: md5
-      md5: 9f71951cfbcf0e033ae8989679890244
-      size: 6598
+      md5: 9d9777d92eff94d333abc27e7401098c
+      size: 6570
     params:
       params.yaml:
         model_building.learning_rate: 0.1
         model_building.max_depth: 3
         model_building.n_estimators: 100
     outs:
-    - path: model/model.pkl
+    - path: model/model.joblib
       hash: md5
-      md5: f28eb5c4f26ca969b93495582d55e452
-      size: 132863
+      md5: 08ccca229c4f3e59d8b11019f48e2153
+      size: 136392
     - path: reports/run_info.json
       hash: md5
-      md5: fd5ca759976f1f07eaa97dbf0e9305c8
+      md5: 70d7548477d00fca7d5d6373bea76111
       size: 46
   model_evaluation:
     cmd: python src/models/model_evaluation.py
@@ -88,16 +88,16 @@ stages:
       hash: md5
       md5: a62be2ce80efc7ae2fd18ec53fdb0411
       size: 2081046
-    - path: model/model.pkl
+    - path: model/model.joblib
       hash: md5
-      md5: f28eb5c4f26ca969b93495582d55e452
-      size: 132863
+      md5: 08ccca229c4f3e59d8b11019f48e2153
+      size: 136392
     - path: src/models/model_evaluation.py
       hash: md5
-      md5: 9acc114c5c78f68bbb8bed2624cf6153
-      size: 4305
+      md5: ed163ac53e0b66e977141a82ccc9d07a
+      size: 4265
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: 9ec482ac482a507637c0d479c025b923
-      size: 175
+      md5: 6f3d70cbcedcbea3edb5cf7e2545635d
+      size: 176

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import pickle
+import joblib
 from sklearn.ensemble import GradientBoostingClassifier
 import yaml
 import os
@@ -76,8 +76,8 @@ def save_model(model, file_path: str) -> None:
     
     try:
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, 'wb') as file:
-            pickle.dump(model, file)
+        
+        joblib.dump(model, file_path)
         logger.debug('Model saved to %s', file_path)
     except Exception as e:
         logger.error('Error occurred while saving the model: %s', e)
@@ -140,8 +140,8 @@ def main():
             # save model
 
             # Save model pickle FIRST (for DVC pipeline)
-            save_model(clf, 'model/model.pkl')
-            logger.info("Model saved to model/model.pkl")
+            save_model(clf, 'model/model.joblib')
+            logger.info("Model saved to model/model.joblib")
 
             # Log the model to MLflow  s3 (for MLflow tracking and registry)
             mlflow.sklearn.log_model(

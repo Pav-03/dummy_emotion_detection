@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from sklearn.feature_extraction.text import CountVectorizer
 import yaml
+import joblib
 
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -40,8 +41,8 @@ def load_data(file_path: str) -> pd.DataFrame:
         logger.error('Unexpected error occurred while loading the data: %s', e)
         raise
 
-def apply_tfidf(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features: int) -> tuple:
-    """Apply TfIdf to the data."""
+def apply_bow(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features: int) -> tuple:
+    """Apply Bag of Words to the data."""
     try:
         vectorizer = CountVectorizer(max_features=max_features)
 
@@ -52,6 +53,12 @@ def apply_tfidf(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features:
 
         X_train_bow = vectorizer.fit_transform(X_train)
         X_test_bow = vectorizer.transform(X_test)
+
+        # Save the vectoriser for API use case 
+        os.makedirs('model', exist_ok=True)
+        joblib.dump(vectorizer, 'model/vectorizer.joblib')
+        logger.debug('Vectorizer saved to model/vectorizer.joblib')
+
 
         train_df = pd.DataFrame(X_train_bow.toarray())
         train_df['label'] = y_train
@@ -83,7 +90,7 @@ def main():
         train_data = load_data('./data/interim/train_processed.csv')
         test_data = load_data('./data/interim/test_processed.csv')
 
-        train_df, test_df = apply_tfidf(train_data, test_data, max_features)
+        train_df, test_df = apply_bow(train_data, test_data, max_features)
 
         save_data(train_df, os.path.join("./data", "processed", "train_bow.csv"))
         save_data(test_df, os.path.join("./data", "processed", "test_bow.csv"))

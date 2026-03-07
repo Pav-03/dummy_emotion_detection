@@ -37,13 +37,13 @@ stages:
     - model_building.learning_rate
     - model_building.max_depth
     outs:
-    - model/model.pkl
+    - model/model.joblib
     - reports/run_info.json
 
   model_evaluation:
     cmd: python src/models/model_evaluation.py
     deps:
-    - model/model.pkl
+    - model/model.joblib
     - data/processed/test_bow.csv
     - src/models/model_evaluation.py
     outs:
