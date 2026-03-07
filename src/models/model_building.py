@@ -156,7 +156,9 @@ def main():
 
             train_accuracy = clf.score(X_train, y_train)
             mlflow.log_metric("training_accuracy", train_accuracy)
-
+            logger.info("Training metrics logged to MLflow successfully")
+            
+            mlflow.log_artifact('model/vectorizer.joblib', artifact_path="preprocessing")
             logger.info("MLflow training metrics logged successfully")
 
             
