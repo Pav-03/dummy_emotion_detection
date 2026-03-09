@@ -57,7 +57,7 @@ stages:
       nfiles: 2
     - path: model/vectorizer.joblib
       hash: md5
-      md5: 96ef61ef10896d2ca34429dcc981a3ec
+      md5: cec1889384a43ace44ab313ff29717fa
       size: 13875
   model_building:
     cmd: python src/models/model_building.py
@@ -69,7 +69,7 @@ stages:
       nfiles: 2
     - path: model/vectorizer.joblib
       hash: md5
-      md5: 96ef61ef10896d2ca34429dcc981a3ec
+      md5: cec1889384a43ace44ab313ff29717fa
       size: 13875
     - path: src/models/model_building.py
       hash: md5
@@ -83,11 +83,11 @@ stages:
     outs:
     - path: model/model.joblib
       hash: md5
-      md5: ac74d0e4d10fc89d1ecd9fd1155249b3
-      size: 137832
+      md5: aa6f72b6925dd24bc037b987dadc3b41
+      size: 136824
     - path: reports/run_info.json
       hash: md5
-      md5: 97c1063d7b809f72c62e5acb851efa6f
+      md5: b3b5ba1bf32f2a5ec34f914b7b20a948
       size: 46
   model_evaluation:
     cmd: python src/models/model_evaluation.py
@@ -98,8 +98,8 @@ stages:
       size: 2081046
     - path: model/model.joblib
       hash: md5
-      md5: ac74d0e4d10fc89d1ecd9fd1155249b3
-      size: 137832
+      md5: aa6f72b6925dd24bc037b987dadc3b41
+      size: 136824
     - path: src/models/model_evaluation.py
       hash: md5
       md5: ed163ac53e0b66e977141a82ccc9d07a
@@ -107,5 +107,5 @@ stages:
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: 1da13705e622f2d6065d6e171b58bf02
-      size: 176
+      md5: 9f977828f3c758ff13a6b6003209f70c
+      size: 175

@@ -21,10 +21,10 @@ def get_logger(name: str, log_file: str = None) -> logging.Logger:
 
     if log_file is None:
         os.makedirs('logs', exist_ok=True)
-        log_file = f'logs/{name}_errors.log'
+        log_file = f'logs/{name}.log'
 
     file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.ERROR)
+    file_handler.setLevel(logging.DEBUG)
 
     # Create formatter and add it to the handlers
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
