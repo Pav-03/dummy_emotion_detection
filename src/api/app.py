@@ -10,7 +10,10 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.utils.logger import get_logger
-logger = get_logger("app")
+from src.api.middleware.cors import setup_cors
+from src.api.middleware.logging_middleware import log_request
+
+logger = get_logger("api")
 
 # create FastAPI instance
 app = FastAPI(
@@ -18,6 +21,10 @@ app = FastAPI(
     description = "API for prediction emotion form given text",
     version = "1.0.0"
 )
+
+# Register middleware
+setup_cors(app)
+app.middleware("http")(log_request)
 
 # pydantic model for request body
 
