@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.utils.logger import get_logger
 from src.api.middleware.cors import setup_cors
 from src.api.middleware.logging_middleware import log_request
+from src.api.middleware.auth import auth_guard, authenticate_user
 
 logger = get_logger("api")
 
@@ -25,6 +26,7 @@ app = FastAPI(
 # Register middleware
 setup_cors(app)
 app.middleware("http")(log_request)
+app.middleware("http")(auth_guard)
 
 # pydantic model for request body
 
@@ -34,6 +36,7 @@ class PredictRequest(BaseModel):
 class PredictResponse(BaseModel):
     emotion: str
     confidence: float
+    model_version: str = "v6.0.0"
 
 class HealthResponse(BaseModel):
     status: str
@@ -42,7 +45,7 @@ class HealthResponse(BaseModel):
 
 class ModelInfoResponse(BaseModel):
     model_type: str
-    model_version: str
+    model_version: str = "v6.0.0"
 
 class BatchPredictRequest(BaseModel):
     texts: list[str]
@@ -50,6 +53,35 @@ class BatchPredictRequest(BaseModel):
 class BatchPredictResponse(BaseModel):
     predictions: list[PredictResponse]
     total: int
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+
+@app.post("/auth/login", response_model=LoginResponse)
+def login(request: LoginRequest):
+    """ login and get JWT token for authentication in other endpoints """
+    token = authenticate_user(request.username, request.password)
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer"
+    )
+
+@app.get("/")
+def root():
+    """ root endpoint to check if the application is running and get basic info about the API """
+    return {
+        "service": "Emotion Detection API",
+        "status": "healthy",
+        "version": "1.0.0",
+        "docs": "/docs"
+    }
 
 # load the model and vectorizer
 
@@ -200,7 +232,7 @@ def predict_batch(request: BatchPredictRequest):
             probabilities = MODEL.predict_proba(features)[0]
 
             emotion = "positive" if prediction == 1 else "negative"
-            confidence = float(np.max(MODEL.predict_proba(features)))
+            confidence = float(np.max(probabilities))
 
             results.append(PredictResponse(
                 emotion=emotion,
