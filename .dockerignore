@@ -1,0 +1,52 @@
+# Version control
+.git
+.gitignore
+
+# Secrets
+.env
+*.env
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.Python
+
+# Virtual environment
+dummy/
+venv/
+env/
+
+# Logs
+logs/
+*.log
+
+# Jupyter
+notebooks/
+*.ipynb
+.ipynb_checkpoints
+
+# Testing
+tests/
+pytest.ini
+.coverage
+
+# DVC (pipeline config, not needed at runtime)
+.dvc/
+.dvcignore
+
+# ML model files (mounted as volume — not baked into image)
+model/
+
+# Docs
+docs/
+references/
+
+# macOS
+.DS_Store
+
+# Duplicate requirements file
+requirement.txt
+
+# CI config (not needed inside container)
+.github/

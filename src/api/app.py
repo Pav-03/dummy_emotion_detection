@@ -3,7 +3,6 @@ from pydantic import BaseModel
 import joblib
 import os
 import numpy as np
-import pandas as pd
 import re
 import sys
 import time
