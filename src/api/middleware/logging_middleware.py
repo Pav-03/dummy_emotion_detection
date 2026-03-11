@@ -17,7 +17,10 @@ async def log_request(request: Request, call_next):
 
     # skip noisy endpoint
     if request.url.path in SKIP_PATH:
-        return await call_next(request)
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = str(uuid.uuid4())[:8]
+        return response
+
     
     # Generate unique Request ID
     request_id = str(uuid.uuid4())[:8]

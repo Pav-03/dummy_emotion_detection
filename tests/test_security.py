@@ -1,5 +1,3 @@
-# tests/test_security.py
-
 class TestSecurity:
     """
     Security tests — can someone hack API?
