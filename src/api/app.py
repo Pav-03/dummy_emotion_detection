@@ -6,6 +6,7 @@ import numpy as np
 import re
 import sys
 import time
+from typing import List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.utils.logger import get_logger
@@ -47,10 +48,10 @@ class ModelInfoResponse(BaseModel):
     model_version: str = "v6.0.0"
 
 class BatchPredictRequest(BaseModel):
-    texts: list[str]
+    texts: List[str]
 
 class BatchPredictResponse(BaseModel):
-    predictions: list[PredictResponse]
+    predictions: List[PredictResponse]
     total: int
 
 class LoginRequest(BaseModel):
