@@ -93,10 +93,10 @@ jobs:
         run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "ECR_REPO=${{ secrets.PROD_ECR_URI}}" >> $GITHUB_OUTPUT
-            echo "ENv_NAME=prod" >> $GITHUB_OUTPUT
+            echo "ENV_NAME=prod" >> $GITHUB_OUTPUT
           else
             echo "ECR_REPO=${{ secrets.DEV_ECR_URI}}" >> $GITHUB_OUTPUT
-            echo "ENv_NAME=dev" >> $GITHUB_OUTPUT
+            echo "ENV_NAME=dev" >> $GITHUB_OUTPUT
           fi
       
       - name: Cache Docker layers
