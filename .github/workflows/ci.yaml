@@ -41,6 +41,14 @@ jobs:
             --max-line-length=125 \
             --exclude=__pycache__,dummy/ \
             --ignore=E501,W503
+      
+      - name: Download model from S3
+        run: |
+          mkdir -p model
+          aws s3 cp s3://${{ secrets.MLFLOW_S3_BUCKET }}/model/model.joblib model/model.joblib
+          aws s3 cp s3://${{ secrets.MLFLOW_S3_BUCKET }}/model/vectorizer.joblib model/vectorizer.joblib
+          echo "Model downloaded:"
+          ls -la model/
 
       - name: Run pytest for unit tests
         run: |
