@@ -90,7 +90,12 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
       
       - name: Set environment variables
+        id: vars
         run: |
+          echo "Current branch: ${{ github.ref }}"
+          echo "DEV_ECR_URI: ${{ secrets.DEV_ECR_URI }}"
+          echo "PROD_ECR_URI: ${{ secrets.PROD_ECR_URI }}"
+          
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "ECR_REPO=${{ secrets.PROD_ECR_URI}}" >> $GITHUB_OUTPUT
             echo "ENV_NAME=prod" >> $GITHUB_OUTPUT
@@ -109,8 +114,8 @@ jobs:
 
       - name: Build and Push Docker image to ECR
         env:
-          ECR_REPO: ${{ steps.set-env.outputs.ECR_REPO }}
-          ENV_NAME: ${{ steps.set-env.outputs.ENV_NAME }}
+          ECR_REPO: ${{ steps.vars.outputs.ECR_REPO }}
+          ENV_NAME: ${{ steps.vars.outputs.ENV_NAME }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
