@@ -1,3 +1,4 @@
+from src.utils.logger import get_logger
 import numpy as np
 import pandas as pd
 import joblib
@@ -9,8 +10,8 @@ import mlflow.sklearn
 
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.utils.logger import get_logger       
 logger = get_logger("model_evaluation")
+
 
 def load_model(file_path: str):
     """Load the trained model from a file."""
@@ -22,8 +23,10 @@ def load_model(file_path: str):
         logger.error('File not found: %s', file_path)
         raise
     except Exception as e:
-        logger.error('Unexpected error occurred while loading the model: %s', e)
+        logger.error(
+            'Unexpected error occurred while loading the model: %s', e)
         raise
+
 
 def load_data(file_path: str) -> pd.DataFrame:
     """Load data from a CSV file."""
@@ -37,6 +40,7 @@ def load_data(file_path: str) -> pd.DataFrame:
     except Exception as e:
         logger.error('Unexpected error occurred while loading the data: %s', e)
         raise
+
 
 def evaluate_model(clf, X_test: np.ndarray, y_test: np.ndarray) -> dict:
     """Evaluate the model and return the evaluation metrics."""
@@ -63,6 +67,7 @@ def evaluate_model(clf, X_test: np.ndarray, y_test: np.ndarray) -> dict:
         logger.error('Error during model evaluation: %s', e)
         raise
 
+
 def save_metrics(metrics: dict, file_path: str) -> None:
     """Save the evaluation metrics to a JSON file."""
     try:
@@ -74,25 +79,27 @@ def save_metrics(metrics: dict, file_path: str) -> None:
         logger.error('Error occurred while saving the metrics: %s', e)
         raise
 
+
 def main():
     try:
 
         # Set up MLflow tracking URI and experiment
 
-        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+        mlflow.set_tracking_uri(os.environ.get(
+            "MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
         mlflow.set_experiment("emotion-detection")
 
         # Load the trained model and test data
         clf = load_model('./model/model.joblib')
         test_data = load_data('./data/processed/test_bow.csv')
-        
+
         X_test = test_data.iloc[:, :-1].values
         y_test = test_data.iloc[:, -1].values
 
         # Evaluate the model
 
         metrics = evaluate_model(clf, X_test, y_test)
-        
+
         # Save metrics to a file and log to MLflow
         save_metrics(metrics, 'reports/metrics.json')
 
@@ -107,11 +114,13 @@ def main():
                 with mlflow.start_run(run_id=run_id):
                     mlflow.log_metrics(metrics)
                     mlflow.log_artifact('reports/metrics.json')
-                    logger.info(f"Model evaluation metrics logged to MLflow successfully under run ID: {run_id}")
+                    logger.info(
+                        f"Model evaluation metrics logged to MLflow successfully under run ID: {run_id}")
             else:
-                    logger.error("Run ID not found in the run_info.json file.")
+                logger.error("Run ID not found in the run_info.json file.")
         else:
-            logger.error("Run info file not found at reports/run_info.json. Metrics will not be logged to MLflow.")
+            logger.error(
+                "Run info file not found at reports/run_info.json. Metrics will not be logged to MLflow.")
 
         from src.utils.logger import upload_logs_to_s3
         upload_logs_to_s3()
@@ -119,6 +128,7 @@ def main():
     except Exception as e:
         logger.error('Failed to complete the model evaluation process: %s', e)
         print(f"Error: {e}")
+
 
 if __name__ == '__main__':
     main()

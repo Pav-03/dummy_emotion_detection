@@ -1,4 +1,4 @@
-import numpy as np
+from src.utils.logger import get_logger
 import pandas as pd
 import os
 from sklearn.feature_extraction.text import CountVectorizer
@@ -7,8 +7,8 @@ import joblib
 
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.utils.logger import get_logger
 logger = get_logger("feature_engineering")
+
 
 def load_params(params_path: str) -> dict:
     """Load parameters from a YAML file."""
@@ -27,6 +27,7 @@ def load_params(params_path: str) -> dict:
         logger.error('Unexpected error: %s', e)
         raise
 
+
 def load_data(file_path: str) -> pd.DataFrame:
     """Load data from a CSV file."""
     try:
@@ -41,6 +42,7 @@ def load_data(file_path: str) -> pd.DataFrame:
         logger.error('Unexpected error occurred while loading the data: %s', e)
         raise
 
+
 def apply_bow(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features: int) -> tuple:
     """Apply Bag of Words to the data."""
     try:
@@ -54,11 +56,10 @@ def apply_bow(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features: i
         X_train_bow = vectorizer.fit_transform(X_train)
         X_test_bow = vectorizer.transform(X_test)
 
-        # Save the vectoriser for API use case 
+        # Save the vectoriser for API use case
         os.makedirs('model', exist_ok=True)
         joblib.dump(vectorizer, 'model/vectorizer.joblib')
         logger.debug('Vectorizer saved to model/vectorizer.joblib')
-
 
         train_df = pd.DataFrame(X_train_bow.toarray())
         train_df['label'] = y_train
@@ -72,6 +73,7 @@ def apply_bow(train_data: pd.DataFrame, test_data: pd.DataFrame, max_features: i
         logger.error('Error during Bag of Words transformation: %s', e)
         raise
 
+
 def save_data(df: pd.DataFrame, file_path: str) -> None:
     """Save the dataframe to a CSV file."""
     try:
@@ -81,6 +83,7 @@ def save_data(df: pd.DataFrame, file_path: str) -> None:
     except Exception as e:
         logger.error('Unexpected error occurred while saving the data: %s', e)
         raise
+
 
 def main():
     try:
@@ -92,11 +95,14 @@ def main():
 
         train_df, test_df = apply_bow(train_data, test_data, max_features)
 
-        save_data(train_df, os.path.join("./data", "processed", "train_bow.csv"))
+        save_data(train_df, os.path.join(
+            "./data", "processed", "train_bow.csv"))
         save_data(test_df, os.path.join("./data", "processed", "test_bow.csv"))
     except Exception as e:
-        logger.error('Failed to complete the feature engineering process: %s', e)
+        logger.error(
+            'Failed to complete the feature engineering process: %s', e)
         print(f"Error: {e}")
+
 
 if __name__ == '__main__':
     main()

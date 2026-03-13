@@ -3,6 +3,7 @@ import os
 import boto3
 from datetime import datetime
 
+
 def get_logger(name: str, log_file: str = None) -> logging.Logger:
     """Set up a logger with both console and file handlers."""
     logger = logging.getLogger(name)
@@ -12,7 +13,7 @@ def get_logger(name: str, log_file: str = None) -> logging.Logger:
 
     if logger.handlers:
         return logger
-    
+
     # Console handler for logging debug and higher level messages
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
@@ -27,7 +28,8 @@ def get_logger(name: str, log_file: str = None) -> logging.Logger:
     file_handler.setLevel(logging.DEBUG)
 
     # Create formatter and add it to the handlers
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(formatter)
     file_handler.setFormatter(formatter)
 
@@ -37,11 +39,12 @@ def get_logger(name: str, log_file: str = None) -> logging.Logger:
 
     return logger
 
+
 def upload_logs_to_s3(bucket_name: str = None, prefix: str = "logs"):
     """
     Upload all log files to S3.
     Call this at the END of your pipeline.
-    
+
     S3 path: s3://bucket/logs/2026/02/28/model_building.log
     """
     try:

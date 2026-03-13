@@ -38,7 +38,7 @@ jobs:
       - name: Run flake8 for code quality
         run: |
           flake8 src/ \
-            --max-line-length=120 \
+            --max-line-length=125 \
             --exclude=__pycache__,dummy/ \
             --ignore=E501,W503
 

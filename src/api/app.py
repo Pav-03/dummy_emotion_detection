@@ -1,3 +1,7 @@
+from src.api.middleware.auth import auth_guard, authenticate_user
+from src.api.middleware.logging_middleware import log_request
+from src.api.middleware.cors import setup_cors
+from src.utils.logger import get_logger
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
@@ -9,18 +13,14 @@ import time
 from typing import List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.utils.logger import get_logger
-from src.api.middleware.cors import setup_cors
-from src.api.middleware.logging_middleware import log_request
-from src.api.middleware.auth import auth_guard, authenticate_user
 
 logger = get_logger("api")
 
 # create FastAPI instance
 app = FastAPI(
-    title = "Emotion Detection Api",
-    description = "API for prediction emotion form given text",
-    version = "1.0.0"
+    title="Emotion Detection Api",
+    description="API for prediction emotion form given text",
+    version="1.0.0"
 )
 
 # Register middleware
@@ -30,38 +30,45 @@ app.middleware("http")(auth_guard)
 
 # pydantic model for request body
 
+
 class PredictRequest(BaseModel):
     text: str
+
 
 class PredictResponse(BaseModel):
     emotion: str
     confidence: float
     model_version: str = "v6.0.0"
 
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     vectorizer_loaded: bool
 
+
 class ModelInfoResponse(BaseModel):
     model_type: str
     model_version: str = "v6.0.0"
 
+
 class BatchPredictRequest(BaseModel):
     texts: List[str]
+
 
 class BatchPredictResponse(BaseModel):
     predictions: List[PredictResponse]
     total: int
 
+
 class LoginRequest(BaseModel):
     username: str
     password: str
 
+
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
 
 
 @app.post("/auth/login", response_model=LoginResponse)
@@ -72,6 +79,7 @@ def login(request: LoginRequest):
         access_token=token,
         token_type="bearer"
     )
+
 
 @app.get("/")
 def root():
@@ -85,15 +93,17 @@ def root():
 
 # load the model and vectorizer
 
-MODEL  = None
+
+MODEL = None
 VECTORIZER = None
+
 
 @app.on_event("startup")
 def load_model_vectorizer():
     global MODEL, VECTORIZER
 
-    model_path = os.getenv("MODEL_PATH",'model/model.joblib')
-    vectorizer_path = os.getenv("VECTORIZER_PATH",'model/vectorizer.joblib')
+    model_path = os.getenv("MODEL_PATH", 'model/model.joblib')
+    vectorizer_path = os.getenv("VECTORIZER_PATH", 'model/vectorizer.joblib')
 
     try:
         MODEL = joblib.load(model_path)
@@ -104,7 +114,7 @@ def load_model_vectorizer():
     except Exception as e:
         logger.error(f"Error loading model from {model_path}: {e}")
         MODEL = None
-    
+
     try:
         VECTORIZER = joblib.load(vectorizer_path)
         logger.info(f"Vectorizer loaded successfully from {vectorizer_path}")
@@ -114,8 +124,9 @@ def load_model_vectorizer():
     except Exception as e:
         logger.error(f"Error loading vectorizer from {vectorizer_path}: {e}")
         VECTORIZER = None
-    
+
 # Preprocesing function for input text
+
 
 def preprocess_text(text: str) -> str:
     """ clean the input text exactly like training data preprocessing """
@@ -127,6 +138,8 @@ def preprocess_text(text: str) -> str:
     return text
 
 # Api end point for prediction
+
+
 @app.get("/health", response_model=HealthResponse)
 def health_check():
     """ health checks- kubernetes and load balancer can use this endpoint to check the health of the application """
@@ -135,14 +148,15 @@ def health_check():
     model_loaded = MODEL is not None
     vectorizer_loaded = VECTORIZER is not None
 
-    logger.debug(f"Health check performed. Status: {status}, Model loaded: {model_loaded}, Vectorizer loaded: {vectorizer_loaded}")
+    logger.debug(
+        f"Health check performed. Status: {status}, Model loaded: {model_loaded}, Vectorizer loaded: {vectorizer_loaded}")
     return HealthResponse(
-        status=status, 
-        model_loaded=model_loaded, 
+        status=status,
+        model_loaded=model_loaded,
         vectorizer_loaded=vectorizer_loaded)
 
-@app.get("/model-info")
 
+@app.get("/model-info")
 def model_info():
     """ endpoint to get model information like model type and version """
 
@@ -154,7 +168,7 @@ def model_info():
         "version": os.getenv("MODEL_VERSION", "v6.0.0"),
     }
 
-    
+
 @app.post("/predict", response_model=PredictResponse)
 def predict(request: PredictRequest):
     """ predict the emotion from the input text and return the emotion and confidence score """
@@ -163,20 +177,21 @@ def predict(request: PredictRequest):
     # check model if loaded
 
     if MODEL is None or VECTORIZER is None:
-        logger.error("Model or vectorizer not loaded. Cannot perform prediction.")
+        logger.error(
+            "Model or vectorizer not loaded. Cannot perform prediction.")
         raise HTTPException(
-            status_code=503, 
+            status_code=503,
             detail="Model or vectorizer not loaded. Please try again later.")
-    
+
     # check text is not empty
     if not request.text.strip():
         logger.error("Input text is empty. Cannot perform prediction.")
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Input text cannot be empty.")
-    
+
     try:
-        #preprocess the imput text
+        # preprocess the imput text
         processed_text = preprocess_text(request.text)
         logger.debug(f"Input text preprocessed: {processed_text}")
 
@@ -184,31 +199,33 @@ def predict(request: PredictRequest):
         text_vector = VECTORIZER.transform([processed_text])
         logger.debug(f"Input text vectorized: {text_vector.shape}")
 
-        #predict the emotion
-        prediction = MODEL.predict(text_vector)[0]  
+        # predict the emotion
+        prediction = MODEL.predict(text_vector)[0]
         confidence = np.max(MODEL.predict_proba(text_vector))
-        logger.debug(f"Prediction made: {prediction} with confidence {confidence}")
+        logger.debug(
+            f"Prediction made: {prediction} with confidence {confidence}")
 
         # Formate the response
         emotion = "positive" if prediction == 1 else "negative"
-        confidence = round(confidence,4)
+        confidence = round(confidence, 4)
 
         # log prediction with latency
         latency = time.time() - start_time
         logger.info(f"Prediction completed in {latency:.2f} seconds.")
 
         return PredictResponse(
-            emotion=emotion, 
+            emotion=emotion,
             confidence=confidence,
             model_version=os.getenv("MODEL_VERSION", "v6.0.0"))
-            
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error during prediction: {e}")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail="An error occurred during prediction. Please try again later.")
+
 
 @app.post("/predict/batch", response_model=BatchPredictResponse)
 def predict_batch(request: BatchPredictRequest):
@@ -216,18 +233,21 @@ def predict_batch(request: BatchPredictRequest):
     start_time = time.time()
 
     if MODEL is None or VECTORIZER is None:
-        logger.error("Batch prediction attempted but model/vectorizer not loaded")
-        raise HTTPException(status_code=503, detail="Model or vectorizer not loaded.")
+        logger.error(
+            "Batch prediction attempted but model/vectorizer not loaded")
+        raise HTTPException(
+            status_code=503, detail="Model or vectorizer not loaded.")
 
     if not request.texts:
         logger.warning("Empty batch received")
-        raise HTTPException(status_code=400, detail="Texts list cannot be empty.")
+        raise HTTPException(
+            status_code=400, detail="Texts list cannot be empty.")
 
     try:
         results = []
         for text in request.texts:
             processed_text = preprocess_text(text)
-            features = VECTORIZER.transform([ processed_text])
+            features = VECTORIZER.transform([processed_text])
             prediction = MODEL.predict(features)[0]
             probabilities = MODEL.predict_proba(features)[0]
 
@@ -241,7 +261,8 @@ def predict_batch(request: BatchPredictRequest):
             ))
 
         latency = time.time() - start_time
-        logger.info(f"Batch prediction: {len(request.texts)} texts | Latency: {latency:.3f}s")
+        logger.info(
+            f"Batch prediction: {len(request.texts)} texts | Latency: {latency:.3f}s")
 
         return BatchPredictResponse(
             predictions=results,
@@ -250,8 +271,5 @@ def predict_batch(request: BatchPredictRequest):
 
     except Exception as e:
         logger.error(f"Batch prediction failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Batch prediction failed: {str(e)}")
-
-
-    
-        
+        raise HTTPException(
+            status_code=500, detail=f"Batch prediction failed: {str(e)}")

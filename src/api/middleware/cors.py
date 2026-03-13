@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
 def setup_cors(app: FastAPI):
     """ configure CORS middleware based on environment"""
 
@@ -12,7 +13,7 @@ def setup_cors(app: FastAPI):
     elif environment == "staging":
         origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
     else:
-        origins = ["*"] # allow all in development
+        origins = ["*"]  # allow all in development
 
     app.add_middleware(
         CORSMiddleware,
