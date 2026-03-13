@@ -1,0 +1,72 @@
+name: CD Dev Pipeline
+
+on: 
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    branches: [dev]
+    types: [completed]
+
+jobs:
+  deploy:
+    name: Deploy to Dev Server
+    runs-on: ubuntu-latest
+    environment: development
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+
+      - name: Deploy to Dev Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username : ubuntu
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          script: |
+
+            # login to the ECR 
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+              | docker login \
+                --username AWS \
+                --password-stdin \
+                ${{ secrets.DEV_ECR_URI }}
+            
+            # Download model from S3
+            mkdir -p /home/ubuntu/model
+            aws s3 cp s3://${{ secrets.MLFLOW_S3_BUCKET }}/model/model.joblib \
+              /home/ubuntu/model/model.joblib
+            aws s3 cp s3://${{ secrets.MLFLOW_S3_BUCKET }}/model/vectorizer.joblib \
+              /home/ubuntu/model/vectorizer.joblib
+            echo "Model downloaded!"
+            
+            # pull the latest image from ECR
+            docker pull ${{ secrets.DEV_ECR_URI }}:dev-latest
+
+            # stop and remove the existing container
+            docker stop emotion-api || true
+            docker rm emotion-api || true
+
+            # run the new container
+            docker run -d \
+              --name emotion-api \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              -v /home/ubuntu/model:/app/model \
+              -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+              -e MODEL_PATH="model/model.joblib" \
+              -e VECTORIZER_PATH="model/vectorizer.joblib" \
+              -e MODEL_VERSION="v6.0.0" \
+              ${{ secrets.DEV_ECR_URI }}:dev-latest
+            
+            # Health check
+            sleep 10
+            if curl -f http://localhost:8000/health ; then
+              echo "Health check passed!"
+            else
+              echo "Health check failed!"
+              exit 1
+            fi
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "Deployment to Dev Server completed successfully!"
