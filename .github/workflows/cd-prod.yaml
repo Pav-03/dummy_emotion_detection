@@ -1,0 +1,137 @@
+name : CD Prod Pipeline
+
+on: 
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy to Production Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          script: |
+            set -e
+      
+            # Production deployment steps
+
+            # login to the ECR 
+
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+              | docker login \
+                --username AWS \
+                --password-stdin \
+                ${{ secrets.DEV_ECR_URI }}
+            
+            # Save current image for rollback
+
+            CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' emotion-api 2>/dev/null || echo "none")
+            echo "Current image (rollback target): $CURRENT_IMAGE"
+
+            # Download model from S3
+
+            mkdir -p /home/ubuntu/model
+            aws s3 cp s3://${{ secrets.MLFLOW_S3_BUCKET }}/model/model.joblib \
+              /home/ubuntu/model/model.joblib
+            aws s3 cp s3://${{ secrets.MLFLOW_S3_BUCKET }}/model/vectorizer.joblib \
+              /home/ubuntu/model/vectorizer.joblib
+            echo "Model downloaded!"
+
+            # pull the latest image from ECR
+
+            docker pull ${{ secrets.PROD_ECR_URI }}:prod-latest
+            echo "New image pulled"
+
+            # stop and remove the existing container
+
+            docker stop emotion-api || true
+            docker rm emotion-api || true
+
+            # run the new container
+
+            docker run -d \
+              --name emotion-api \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              -v /home/ubuntu/model:/app/model \
+              -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+              -e MODEL_PATH="model/model.joblib" \
+              -e VECTORIZER_PATH="model/vectorizer.joblib" \
+              -e MODEL_VERSION="v6.0.0" \
+              -e ENVIRONMENT="production" \
+              ${{ secrets.PROD_ECR_URI }}:prod-latest
+            
+            # Health check
+
+            echo "Waiting for the application to start..."
+            sleep 15
+
+            HEALTHY=false
+            for i in 1 2 3; do
+              echo "Health check attempt $i/3..."
+              if curl -sf http://localhost:8000/health; then
+                echo ""
+                echo "Health check passed on attempt $i!"
+                HEALTHY=true
+                break
+              fi
+              echo "Attempt $i failed, waiting 5 seconds..."
+              sleep 5
+            done
+
+            # Rollback if health check fails
+
+            if [ "$HEALTHY" = false ]; then
+              echo "******** HEALTH CHECK FAILED — ROLLING BACK ********"
+ 
+              # Grab logs before killing the broken container
+              docker logs emotion-api --tail 50 || true
+ 
+              # Remove the broken container
+              docker stop emotion-api || true
+              docker rm emotion-api || true
+ 
+              # Rollback to previous image
+              if [ "$CURRENT_IMAGE" != "none" ]; then
+                echo "Rolling back to: $CURRENT_IMAGE"
+                docker run -d \
+                  --name emotion-api \
+                  --restart unless-stopped \
+                  -p 8000:8000 \
+                  -v /home/ubuntu/model:/app/model \
+                  -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+                  -e MODEL_PATH="model/model.joblib" \
+                  -e VECTORIZER_PATH="model/vectorizer.joblib" \
+                  -e MODEL_VERSION="v6.0.0" \
+                  -e ENVIRONMENT="production" \
+                  $CURRENT_IMAGE
+ 
+                sleep 10
+                if curl -sf http://localhost:8000/health; then
+                  echo "Rollback successful — old version is running"
+                else
+                  echo "CRITICAL: Rollback also failed!"
+                fi
+              else
+                echo "No previous image to rollback to (first deployment)"
+              fi
+ 
+              echo "******** DEPLOYMENT FAILED ********"
+              exit 1
+            fi
+
+            # Clean up old images
+            echo "Cleaning up old images..."
+            docker image prune -f
+
+            echo "Deployment to production successful!"

@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:                            # ensure only one workflow runs per branch at a time
+  group: ci-${{ github.ref }}         
+  cancel-in-progress: true 
+
 jobs:
 
   test:
