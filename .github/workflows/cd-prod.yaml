@@ -31,7 +31,7 @@ jobs:
               | docker login \
                 --username AWS \
                 --password-stdin \
-                ${{ secrets.DEV_ECR_URI }}
+                ${{ secrets.PROD_ECR_URI }}
             
             # Save current image for rollback
 
