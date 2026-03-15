@@ -45,3 +45,4 @@ MODEL_INFO = Info(
     "model_info",
     "Information about the model, such as version and type"
 )
+

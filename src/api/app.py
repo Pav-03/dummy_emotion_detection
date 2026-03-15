@@ -131,17 +131,15 @@ def load_model_vectorizer():
         logger.error(f"Error loading vectorizer from {vectorizer_path}: {e}")
         VECTORIZER = None
 
-# set model info metric on startup
-MODEL_INFO.info({
-    "model_name": "emotion-detection-model",
-    "model_type": type(MODEL).__name__ if MODEL else "Model not loaded",
-    "features": "Bag of Words (CountVectorizer, 500 features)",
-    "version": os.getenv("MODEL_VERSION", "v6.0.0"),
-})
+    # set model info metric on startup
+    MODEL_INFO.info({
+        "model_name": "emotion-detection-model",
+        "model_type": type(MODEL).__name__ if MODEL else "Model not loaded",
+        "features": "Bag of Words (CountVectorizer, 500 features)",
+        "version": os.getenv("MODEL_VERSION", "v6.0.0"),
+    })
 
 # Preprocesing function for input text
-
-
 def preprocess_text(text: str) -> str:
     """ clean the input text exactly like training data preprocessing """
     text = text.lower()
@@ -152,8 +150,6 @@ def preprocess_text(text: str) -> str:
     return text
 
 # Api end point for prediction
-
-
 @app.get("/health", response_model=HealthResponse)
 def health_check():
     """ health checks- kubernetes and load balancer can use this endpoint to check the health of the application """
@@ -196,7 +192,7 @@ def predict(request: PredictRequest):
         raise HTTPException(
             status_code=503,
             detail="Model or vectorizer not loaded. Please try again later.")
-    
+
     # Metric: count errors
     if MODEL is None or VECTORIZER is None:
         REQUESTS_COUNTER.labels(endpoint="/predict", method="POST", status_code=503).inc()
@@ -285,22 +281,20 @@ def predict_batch(request: BatchPredictRequest):
 
             # metrics: record each prediction and confidence
             PREDICTION_COUNTER.labels(emotion=emotion).inc()
-            PREDICTION_CONFIDENCE.labels(emotion=emotion).observe(confidence)   
+            PREDICTION_CONFIDENCE.labels(emotion=emotion).observe(confidence)
 
             results.append(PredictResponse(
                 emotion=emotion,
                 confidence=round(confidence, 4),
                 model_version=os.getenv("MODEL_VERSION", "v6")
             ))
-
         latency = time.time() - start_time
         logger.info(
             f"Batch prediction: {len(request.texts)} texts | Latency: {latency:.3f}s")
-        
+
         # metrics: record batch request
         REQUESTS_COUNTER.labels(endpoint="/predict/batch", method="POST", status_code=200).inc()
         REQUEST_LATENCY.labels(endpoint="/predict/batch", method="POST").observe(latency)
-
         return BatchPredictResponse(
             predictions=results,
             total=len(results)
