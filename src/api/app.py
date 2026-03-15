@@ -139,6 +139,7 @@ def load_model_vectorizer():
         "version": os.getenv("MODEL_VERSION", "v6.0.0"),
     })
 
+
 # Preprocesing function for input text
 def preprocess_text(text: str) -> str:
     """ clean the input text exactly like training data preprocessing """
@@ -148,6 +149,7 @@ def preprocess_text(text: str) -> str:
     text = re.sub(r'\d+', '', text)
     text = text.strip()
     return text
+
 
 # Api end point for prediction
 @app.get("/health", response_model=HealthResponse)
