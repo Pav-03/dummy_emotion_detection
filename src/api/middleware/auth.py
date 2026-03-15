@@ -24,6 +24,7 @@ PUBLIC_PATHS = {
     "/openapi.json",
     "/auth/login",
     "/favicon.ico",
+    "/metrics",
 }
 
 # Users (for demo purposes, replace with DB in production)
@@ -68,7 +69,7 @@ def verify_token(token: str) -> dict:
 async def auth_guard(request: Request, call_next):
 
     # skip authentication for public paths
-    if request.url.path in PUBLIC_PATHS:
+    if request.url.path in PUBLIC_PATHS or request.url.path.startswith("/metrics"):
         return await call_next(request)
 
     # skip authentication for OPTIONS method (CORS preflight)
