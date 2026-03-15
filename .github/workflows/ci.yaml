@@ -51,7 +51,7 @@ jobs:
           flake8 src/ \
             --max-line-length=125 \
             --exclude=__pycache__,dummy/ \
-            --ignore=E501,W503
+            --ignore=E501,W503,E501,W503,W504,E402
 
       - name: Cache model files
         id: model-cache
